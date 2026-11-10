@@ -16,6 +16,8 @@ The app does one thing: it **generates a PNG image** showing some text and the c
 | `src/ImageCreator.php` | The class that draws the image. |
 | `tests/` | PHPUnit tests (`Unit` and `Feature` suites). |
 | `Docker/Dockerfile` | Docker image (PHP 8.2 + Apache). |
+| `docker-compose.yml` | Local run with Docker Compose. |
+| `doc/` | TP documentation (one file per part). |
 | `.circleci/config.yml` | CI/CD pipeline. |
 | `phpcs.xml` | Code style rules (PSR-12 + PHP compatibility). |
 | `.env.example` | Example environment variables. |
@@ -67,13 +69,15 @@ $yourText2  = "Une superbe image";   // small text
 ## Run with Docker
 
 ```bash
+# Docker Compose (recommended)
+docker compose up --build          # http://localhost:8080
+
+# or plain Docker
 docker build -f Docker/Dockerfile -t devsecops-tp3 .
-docker run --rm -p 8080:80 devsecops-tp3
+docker run --rm -p 8080:80 -e APP_SECRET=demo-secret devsecops-tp3
 ```
 
-Open <http://localhost:8080>.
-
-> `vendor/` is excluded from the image (see `.dockerignore`). Run `composer install` inside the container, or mount `vendor/` as a volume.
+Composer dependencies (without dev packages) are installed during the image build, so no local PHP is needed.
 
 ---
 
@@ -142,6 +146,7 @@ Runs on `main`, `master`, `develop`, `feature/*`, `release/*`, `hotfix/*`, `bugf
 
 - **`deploy-ssh-production` is not defined.** It is used in `main_workflow` but has no job definition, so CircleCI will reject the config until it is added (or removed from the workflow).
 - **Dockerfile path case.** CI uses `docker/Dockerfile` but the folder is `Docker/`. This works on Windows/macOS but fails on Linux (the CI runner).
+- **CI uses PHP 8.1** (`cimg/php:8.1`) but `composer.json` requires PHP >= 8.2, so `build-setup` fails.
 - **`lint-phpcs` never fails.** Style errors (exit codes 1 and 2) are turned into success. Good for reporting, but it won't block bad code.
 - **`phpunit.xml` coverage source** points to `./app`, but the code lives in `./src`.
 

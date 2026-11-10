@@ -64,8 +64,10 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
  && docker-php-ext-install -j$(nproc) gd pdo pdo_mysql zip pdo_sqlite
 
 # Install Infisical cli
+# The old Cloudsmith repository (dl.cloudsmith.io/public/infisical/infisical-cli)
+# no longer serves the package: Infisical moved to artifacts-cli.infisical.com
 RUN apt-get install -y bash curl \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | bash \
+    && curl -1sLf 'https://artifacts-cli.infisical.com/setup.deb.sh' | bash \
     && apt-get update \
     && apt-get install -y infisical
 
@@ -80,10 +82,22 @@ RUN a2enmod rewrite
 
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 
+# Define the working directory
+WORKDIR /var/www/html
+
+# Install the PHP dependencies first (vendor/ is excluded by .dockerignore).
+# Copying only composer.json/composer.lock first lets Docker cache this layer
+# as long as the dependencies do not change.
+COPY composer.json composer.lock /var/www/html/
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction --no-progress
+
 # Copy existing application directory contents
 COPY . /var/www/html
 
 RUN rm -Rf /var/www/html/docker
+
+# Generate the optimized autoloader now that the source code is present
+RUN composer dump-autoload --optimize --no-dev
 
 # Ensure the volumes directories exist
 RUN mkdir -p /var/www/html/vendor \
@@ -91,9 +105,6 @@ RUN mkdir -p /var/www/html/vendor \
 
 #Change permission to allow app to work properly
 RUN chown -R www-data:www-data /var/www/html
-
-# Define the working directory
-WORKDIR /var/www/html
 
 # Exposez le port 80
 EXPOSE 80

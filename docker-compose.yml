@@ -1,0 +1,13 @@
+# Local development only.
+# Usage: docker compose up --build   ->  http://localhost:8080
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Docker/Dockerfile
+    image: devsecops-tp3:local
+    ports:
+      - "8080:80"
+    environment:
+      # Read from the shell or from a local .env file (never committed).
+      APP_SECRET: ${APP_SECRET:-}
